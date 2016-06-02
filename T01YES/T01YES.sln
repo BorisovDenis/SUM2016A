@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "T01YES", "T01YES.vcproj", "{DD18B62D-E9DE-4D1F-A2DF-C0622C3EBB0C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "T02CLOCK", "..\T02CLOCK\T02CLOCK.vcproj", "{E471E930-32AC-49C2-9D76-8B1387228A96}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DD18B62D-E9DE-4D1F-A2DF-C0622C3EBB0C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{DD18B62D-E9DE-4D1F-A2DF-C0622C3EBB0C}.Debug|Win32.Build.0 = Debug|Win32
+		{DD18B62D-E9DE-4D1F-A2DF-C0622C3EBB0C}.Release|Win32.ActiveCfg = Release|Win32
+		{DD18B62D-E9DE-4D1F-A2DF-C0622C3EBB0C}.Release|Win32.Build.0 = Release|Win32
+		{E471E930-32AC-49C2-9D76-8B1387228A96}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E471E930-32AC-49C2-9D76-8B1387228A96}.Debug|Win32.Build.0 = Debug|Win32
+		{E471E930-32AC-49C2-9D76-8B1387228A96}.Release|Win32.ActiveCfg = Release|Win32
+		{E471E930-32AC-49C2-9D76-8B1387228A96}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
