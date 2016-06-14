@@ -179,7 +179,23 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\Anim.C"
+				>
+			</File>
+			<File
 				RelativePath=".\main.c"
+				>
+			</File>
+			<File
+				RelativePath=".\RENDER.C"
+				>
+			</File>
+			<File
+				RelativePath=".\U_BALL.C"
+				>
+			</File>
+			<File
+				RelativePath=".\UNIT.C"
 				>
 			</File>
 		</Filter>
@@ -188,6 +204,18 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath=".\ANIM.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Def.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Units.h"
+				>
+			</File>
 			<File
 				RelativePath=".\VEC.h"
 				>
