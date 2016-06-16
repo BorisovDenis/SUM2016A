@@ -1,5 +1,5 @@
-/* FILE NAME: SHADERS.C
- * PROGRAMMER: VG4
+/* FILE NAME: LOADPRIM.C
+ * PROGRAMMER: Borisov Denis
  * DATE: 13.06.2016
  * PURPOSE: Render handle functions.
  */
@@ -9,173 +9,148 @@
 
 #include "anim.h"
 
-/* Save text to log file function.
+/* Load object from '*.g3d' file function.
  * ARGUMENTS:
- *   - text 1 to save:
- *       CHAR *Stage;
- *   - text 2 to save:
- *       CHAR *Text;
- * RETURNS: None.
- */
-static VOID DB3_RndShaderLog( CHAR *Stage, CHAR *Text )
-{
-  FILE *F;
-
-  if ((F = fopen("VG4{SHAD}30.LOG", "a")) != NULL)
-  {
-    fprintf(F, "%s: %s\n", Stage, Text);
-    fclose(F);
-  }
-} /* End of 'VG4_RndShaderLoadTextFile' function */
-
-/* Text file load to memory function.
- * ARGUMENTS:
+ *   - object structure pointer:
+ *       dbOBJ *Obj;
  *   - file name:
  *       CHAR *FileName;
  * RETURNS:
- *   (CHAR *) load text or NULL if error is occured.
+ *   (BOOL) TRUE is success, FALSE otherwise.
  */
-static CHAR * DB3_RndShaderLoadTextFile( CHAR *FileName )
+BOOL DB3_RndObjLoad( db3OBJ *Obj, CHAR *FileName )
 {
   FILE *F;
-  CHAR *text;
-  INT flen;
+  DWORD Sign;
+  INT NumOfPrimitives;
+  CHAR MtlFile[300];
+  INT NumOfV;
+  INT NumOfI;
+  CHAR Mtl[300];
+  INT p;
+  db3VERTEX *V;
+  INT *I;
 
-  if ((F = fopen(FileName, "r")) == NULL)
-    return NULL;
+  memset(Obj, 0, sizeof(vg4OBJ));
 
-  /* Obtain file length */
-  fseek(F, 0, SEEK_END);
-  flen = ftell(F);
+  F = fopen(FileName, "rb");
+  if (F == NULL)
+    return FALSE;
 
-  /* Allocate memory */
-  if ((text = malloc(flen + 1)) == NULL)
+  /* File structure:
+   *   4b Signature: "G3D\0"    CHAR Sign[4];
+   *   4b NumOfPrimitives       INT NumOfPrimitives;
+   *   300b material file name: CHAR MtlFile[300];
+   *   repeated NumOfPrimitives times:
+   *     4b INT NumOfV; - vertex count
+   *     4b INT NumOfI; - index (triangles * 3) count
+   *     300b material name: CHAR Mtl[300];
+   *     repeat NumOfV times - vertices:
+   *         !!! float point -> FLT
+   *       typedef struct
+   *       {
+   *         VEC  P;  - Vertex position
+   *         VEC2 T;  - Vertex texture coordinates
+   *         VEC  N;  - Normal at vertex
+   *         VEC4 C;  - Vertex color
+   *       } VERTEX;
+   *     repeat (NumOfF / 3) times - facets (triangles):
+   *       INT N0, N1, N2; - for every triangle (N* - vertex number)
+   */
+  fread(&Sign, 4, 1, F);
+  if (Sign != *(DWORD *)"G3D")
   {
     fclose(F);
-    return NULL;
+    return FALSE;
   }
-  memset(text, 0, flen + 1);
+  fread(&NumOfPrimitives, 4, 1, F);
+  fread(MtlFile, 1, 300, F);
+  VG4_RndLoadMaterials(MtlFile);
 
-  /* Read text */
-  fseek(F, 0, SEEK_SET);
-  fread(text, 1, flen, F);
+  /* Allocate mnemory for primitives */
+  if ((Obj->Prims = malloc(sizeof(vg4PRIM) * NumOfPrimitives)) == NULL)
+  {
+    fclose(F);
+    return FALSE;
+  }
+  Obj->NumOfPrims = NumOfPrimitives;
 
+  for (p = 0; p < NumOfPrimitives; p++)
+  {
+    /* Read primitive info */
+    fread(&NumOfV, 4, 1, F);
+    fread(&NumOfI, 4, 1, F);
+    fread(Mtl, 1, 300, F);
+
+    /* Allocate memory for primitive */
+    if ((V = malloc(sizeof(db3VERTEX) * NumOfV + sizeof(INT) * NumOfI)) == NULL)
+    {
+      while (p-- > 0)
+      {
+        glBindVertexArray(Obj->Prims[p].VA);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glDeleteBuffers(1, &Obj->Prims[p].VBuf);
+        glBindVertexArray(0);
+        glDeleteVertexArrays(1, &Obj->Prims[p].VA);
+        glDeleteBuffers(1, &Obj->Prims[p].IBuf);
+      }
+      free(Obj->Prims);
+      memset(Obj, 0, sizeof(db3OBJ));
+      fclose(F);
+      return FALSE;
+    }
+    I = (INT *)(V + NumOfV);
+    Obj->Prims[p].NumOfI = NumOfI;
+    Obj->Prims[p].M = MatrIdentity();
+    Obj->Prims[p].MtlNo = DB3_RndFindMaterial(Mtl);
+    fread(V, sizeof(db3VERTEX), NumOfV, F);
+    fread(I, sizeof(INT), NumOfI, F);
+
+    /* Create OpenGL buffers */
+    glGenVertexArrays(1, &Obj->Prims[p].VA);
+    glGenBuffers(1, &Obj->Prims[p].VBuf);
+    glGenBuffers(1, &Obj->Prims[p].IBuf);
+
+    /* Activate vertex array */
+    glBindVertexArray(Obj->Prims[p].VA);
+    /* Activate vertex buffer */
+    glBindBuffer(GL_ARRAY_BUFFER, Obj->Prims[p].VBuf);
+    /* Store vertex data */
+    glBufferData(GL_ARRAY_BUFFER, sizeof(db3VERTEX) * NumOfV, V, GL_STATIC_DRAW);
+
+    /* Setup data order */
+    /*                    layout,
+     *                      components count,
+     *                          type
+     *                                    should be normalize,
+     *                                           vertex structure size in bytes (stride),
+     *                                               offset in bytes to field start */
+    glVertexAttribPointer(0, 3, GL_FLOAT, FALSE, sizeof(db3VERTEX),
+                          (VOID *)0); /* position */
+    glVertexAttribPointer(1, 2, GL_FLOAT, FALSE, sizeof(db3VERTEX),
+                          (VOID *)sizeof(VEC)); /* texture coordinates */
+    glVertexAttribPointer(2, 3, GL_FLOAT, FALSE, sizeof(db3VERTEX),
+                          (VOID *)(sizeof(VEC) + sizeof(VEC2))); /* normal */
+    glVertexAttribPointer(3, 4, GL_FLOAT, FALSE, sizeof(db3VERTEX),
+                          (VOID *)(sizeof(VEC) * 2 + sizeof(VEC2))); /* color */
+
+    /* Enable used attributes */
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(3);
+
+    /* Indices */
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, Obj->Prims[p].IBuf);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(INT) * NumOfI, I, GL_STATIC_DRAW);
+
+    /* Disable vertex array */
+    glBindVertexArray(0);
+
+    free(V);
+  }
   fclose(F);
-  return text;
-} /* End of 'VG4_RndShaderLoadTextFile' function */
+  return TRUE;
+} /* End of 'DB3_RndObjLoad' function */
 
-/* Shader program load function.
- * ARGUMENTS:
- *   - shader files prefix:
- *       CHAR *FileNamePrefix;
- * RETURNS:
- *   (UINT) shader program index or 0 if error is occured.
- */
-UINT DB3_RndShaderLoad( CHAR *FileNamePrefix )
-{
-  INT i, res;
-  CHAR *txt;
-  CHAR *suff[] = {"VERT", "FRAG"};
-  INT NS = sizeof(suff) / sizeof(suff[0]);
-  CHAR buf[500];
-  INT shd_type[2] = {GL_VERTEX_SHADER, GL_FRAGMENT_SHADER};
-  UINT
-    prg = 0,
-    shd[2] = {0};
-  BOOL isok = TRUE;
-
-  /* Load shaders */
-  for (i = 0; isok && i < NS; i++)
-  {
-    /* Create shader */
-    if ((shd[i] = glCreateShader(shd_type[i])) == 0)
-    {
-      VG4_RndShaderLog(suff[i], "Error create shader");
-      isok = FALSE;
-      break;
-    }
-    /* Load text file */
-    sprintf(buf, "%s.%s", FileNamePrefix, suff[i]);
-    txt = VG4_RndShaderLoadTextFile(buf);
-    if (txt == NULL)
-    {
-      VG4_RndShaderLog(suff[i], "No file");
-      isok = FALSE;
-      break;
-    }
-
-    /* Attach text to shader  */
-    glShaderSource(shd[i], 1, &txt, NULL);
-    free(txt);
-
-    /* Compile shader */
-    glCompileShader(shd[i]);
-    glGetShaderiv(shd[i], GL_COMPILE_STATUS, &res);
-    if (res != 1)
-    {
-      glGetShaderInfoLog(shd[i], sizeof(buf), &res, buf);
-      VG4_RndShaderLog(suff[i], buf);
-      isok = FALSE;
-      break;
-    }
-  }
-
-  if (isok)
-    if ((prg = glCreateProgram()) == 0)
-      isok = FALSE;
-    else
-    {
-      /* Attach shaders to program */
-      for (i = 0; i < NS; i++)
-        glAttachShader(prg, shd[i]);
-      /* Link program */
-      glLinkProgram(prg);
-      glGetProgramiv(shd[i], GL_LINK_STATUS, &res);
-      if (res != 1)
-      {
-        glGetProgramInfoLog(prg, sizeof(buf), &res, buf);
-        VG4_RndShaderLog("LINK", buf);
-        isok = FALSE;
-      }
-    }
-
-  if (!isok)
-  {
-    for (i = 0; i < NS; i++)
-      if (shd[i] != 0)
-      {
-        if (prg != 0)
-          glDetachShader(prg, shd[i]);
-        glDeleteShader(shd[i]);
-      }
-    if (prg != 0)
-      glDeleteProgram(prg);
-  }
-  return prg;
-} /* End of 'VG4_RndShaderLoad' function */
-
-/* Shader program load function.
- * ARGUMENTS:
- *   - shader program Id:
- *       UINT Prg;
- * RETURNS: None.
- */
-VOID DB3_RndShaderFree( UINT Prg )
-{
-  UINT i, n, shds[5];
-
-  if (Prg == 0)
-    return;
-
-  /* Obtain program shaders count */
-  glGetAttachedShaders(Prg, 5, &n, shds);
-
-  for (i = 0; i < n; i++)
-  {
-    glDetachShader(Prg, shds[i]);
-    glDeleteShader(shds[i]);
-  }
-  glDeleteProgram(Prg);
-} /* End of 'VG4_RndShaderFree' function */
-
-/* END OF 'SHADERS.C' FILE */
+/* END OF 'LOADPRIM.C' FILE */

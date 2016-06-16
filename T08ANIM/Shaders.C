@@ -17,7 +17,7 @@
  *       CHAR *Text;
  * RETURNS: None.
  */
-static VOID VG4_RndShaderLog( CHAR *Stage, CHAR *Text )
+static VOID DB3_RndShaderLog( CHAR *Stage, CHAR *Text )
 {
   FILE *F;
 
@@ -35,7 +35,7 @@ static VOID VG4_RndShaderLog( CHAR *Stage, CHAR *Text )
  * RETURNS:
  *   (CHAR *) load text or NULL if error is occured.
  */
-static CHAR * VG4_RndShaderLoadTextFile( CHAR *FileName )
+static CHAR * DB3_RndShaderLoadTextFile( CHAR *FileName )
 {
   FILE *F;
   CHAR *text;
@@ -71,7 +71,7 @@ static CHAR * VG4_RndShaderLoadTextFile( CHAR *FileName )
  * RETURNS:
  *   (UINT) shader program index or 0 if error is occured.
  */
-UINT VG4_RndShaderLoad( CHAR *FileNamePrefix )
+UINT DB3_RndShaderLoad( CHAR *FileNamePrefix )
 {
   INT i, res;
   CHAR *txt;
@@ -160,7 +160,7 @@ UINT VG4_RndShaderLoad( CHAR *FileNamePrefix )
  *       UINT Prg;
  * RETURNS: None.
  */
-VOID VG4_RndShaderFree( UINT Prg )
+VOID DB3_RndShaderFree( UINT Prg )
 {
   UINT i, n, shds[5];
 
@@ -169,7 +169,7 @@ VOID VG4_RndShaderFree( UINT Prg )
 
   /* Obtain program shaders count */
   glGetAttachedShaders(Prg, 5, &n, shds);
-
+                                            
   for (i = 0; i < n; i++)
   {
     glDetachShader(Prg, shds[i]);

@@ -23,8 +23,8 @@ VOID DB3_RndPrimDraw( vg4PRIM *Pr )
   POINT *pts;
 
   /* Build transform matrix */
-  M = MatrMulMatr(VG4_RndMatrWorld,
-    MatrMulMatr(VG4_RndMatrView, VG4_RndMatrProj));
+  M = MatrMulMatr(DB3_RndMatrWorld,
+    MatrMulMatr(DB3_RndMatrView, DB3_RndMatrProj));
 
   /* Transform all points */
   pts = malloc(sizeof(POINT) * Pr->NumOfP);
@@ -35,8 +35,8 @@ VOID DB3_RndPrimDraw( vg4PRIM *Pr )
     /* NDC */
     VEC p = VecMulMatr(Pr->P[i], M);
 
-    pts[i].x = (p.X + 1) * VG4_Anim.W / 2;
-    pts[i].y = (-p.Y + 1) * VG4_Anim.H / 2;
+    pts[i].x = (p.X + 1) * DB3_Anim.W / 2;
+    pts[i].y = (-p.Y + 1) * DB3_Anim.H / 2;
   }
 
   /* Draw all lines */
@@ -44,7 +44,7 @@ VOID DB3_RndPrimDraw( vg4PRIM *Pr )
   {
     INT n0 = Pr->Edges[i][0], n1 = Pr->Edges[i][1];
 
-    MoveToEx(VG4_Anim.hDC, pts[n0].x, pts[n0].y, NULL);
+    MoveToEx(DB3_Anim.hDC, pts[n0].x, pts[n0].y, NULL);
     LineTo(VG4_Anim.hDC, pts[n1].x, pts[n1].y);
   }
   free(pts);
@@ -53,16 +53,16 @@ VOID DB3_RndPrimDraw( vg4PRIM *Pr )
 /* Primitive free function.
  * ARGUMENTS:
  *   - primtive to free:
- *       vg4PRIM *Pr;
+ *       db3PRIM *Pr;
  * RETURNS: None.
  */
-VOID DB3_RndPrimFree( vg4PRIM *Pr )
+VOID DB3_RndPrimFree( db3PRIM *Pr )
 {
   if (Pr->P != NULL)
     free(Pr->P);
   if (Pr->Edges != NULL)
     free(Pr->Edges);
-  memset(Pr, 0, sizeof(vg4PRIM));
+  memset(Pr, 0, sizeof(db3PRIM));
 } /* End of ' DB3_RndPrimFree' function */
 
 
@@ -156,7 +156,7 @@ BOOL DB3_RndPrimLoad( db3PRIM *Pr, CHAR *FileName )
     Pr->NumOfE = NumOfF;
     for (i = 0; i < NumOfP; i++)
     {
-      fread(&V, sizeof(vg4VERTEX), 1, F);
+      fread(&V, sizeof(db3VERTEX), 1, F);
       Pr->P[i] = V.P;
     }
     for (i = 0; i < NumOfF / 3; i++)
@@ -175,5 +175,5 @@ BOOL DB3_RndPrimLoad( db3PRIM *Pr, CHAR *FileName )
   }
   fclose(F);
   return TRUE;
-} /* End of 'VG4_RndPrimLoad' function */
+} /* End of 'DB3_RndPrimLoad' function */
 

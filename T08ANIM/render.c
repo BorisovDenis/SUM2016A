@@ -1,207 +1,252 @@
- /* Vertex representation type */
-#include "anim.h"
-typedef struct
-{
-  VEC P;  /* Vertex position */
-  VEC2 T;  /* Vertex texture coordinates */
-  VEC N;  /* Normal at vertex */
-  VEC4 C;  /* Vertex color */
-} db3VERTEX;
+/* FILE NAME: RENDER.C
+ * PROGRAMMER: Borisov Denis
+ * DATE: 13.06.2016
+ * PURPOSE: Render handle functions.
+ */
 
-/* Primitive representation type */
-typedef struct
-{
-  db3VERTEX *V;     /* Primitive vertex array */
-  INT NumOfV;       /* Point array size */
-  INT *I;           /* Facets index array */
-  INT NumOfI;       /* Facets index array size */
-} db3PRIM;                     
-/* Primitive draw function.
- * ARGUMENTS:
- *   - primtive to draw:
- *       vg4PRIM *Pr;
+#include <stdio.h>
+#include <string.h>
+
+#include "anim.h"
+
+/* Global transformation matrices */
+MATR
+  DB3_RndMatrWorld, /* World (object) transformation matrix */
+  DB3_RndMatrView,  /* Camera view transform */
+  DB3_RndMatrProj;  /* Projection transform */
+
+/* Projection parameters */
+DBL
+  DB3_RndProjDist, /* Near clip plane */
+  DB3_RndFarClip,  /* Far clip plane */
+  DB3_RndProjSize; /* Project plane size */                         
+                                                                  
+/* Shader support */                                                
+UINT DB3_RndPrg;                         
+                                                                    
+/* Materials array */                                               
+db3MTL DB3_RndMaterials[DB3_MAX_MATERIALS];
+INT DB3_RndNumOfMaterials;
+
+/* Setup projection function.
+ * ARGUMENTS: None.
  * RETURNS: None.
  */
-VOID DB3_RndPrimDraw( vg4PRIM *Pr )
+VOID DB3_RndSetProj( VOID )
+{
+  DBL ratio_x = 1, ratio_y = 1;
+
+  if (DB3_Anim.W >= DB3_Anim.H)
+    ratio_x = (DBL)DB3_Anim.W / DB3_Anim.H;
+  else
+    ratio_y = (DBL)VG4_Anim.H / DB3_Anim.W;
+
+  DB3_RndMatrProj = MatrFrustum(-ratio_x * DB3_RndProjSize / 2,
+                                 ratio_x * DB3_RndProjSize / 2,
+                                -ratio_y * DB3_RndProjSize / 2,
+                                 ratio_y * DB3_RndProjSize / 2,
+                                 DB3_RndProjDist, DB3_RndFarClip);
+} /* End of 'DB3_RndSetProj' function */
+
+/* Object draw function.
+ * ARGUMENTS:
+ *   - object structure pointer:
+ *       db3OBJ *Obj;
+ * RETURNS: None.
+ */
+VOID DB3_RndObjDraw( vg4OBJ *Obj )
 {
   INT i;
-  MATR M;
+  INT loc, mtl;
+  MATR M, MSave;
 
-  /* Build transform matrix */
-  M = MatrMulMatr(VG4_RndMatrWorld,
-    MatrMulMatr(VG4_RndMatrView, VG4_RndMatrProj));
-  glLoadMatrixf(M.A[0]);
+  for (i = 0; i < Obj->NumOfPrims; i++)
+  {
+    /* Build transform matrix */
+    MSave = DB3_RndMatrWorld;
+    VG4_RndMatrWorld = MatrMulMatr(DB3_RndMatrWorld, Obj->Prims[i].M);
+    M = MatrMulMatr(DB3_RndMatrWorld,
+      MatrMulMatr(DB3_RndMatrView, DB3_RndMatrProj));
+    glLoadMatrixf(M.A[0]);
+    /*
+    glBegin(GL_LINES);
+      glColor3d(1, 0, 0);
+      glVertex3d(0, 0, 0);
+      glVertex4d(1, 0, 0, 0);
+      glColor3d(0, 1, 0);
+      glVertex3d(0, 0, 0);
+      glVertex4d(0, 1, 0, 0);
+      glColor3d(0, 0, 1);
+      glVertex3d(0, 0, 0);
+      glVertex4d(0, 0, 1, 0);
+    glEnd();
+    */
 
-  /* Draw all lines */
-  glBegin(GL_TRIANGLES);
-  for (i = 0; i < Pr->NumOfI; i++)
-  {                                    
-    glColor3fv(&Pr->V[Pr->I[i]].C.X);
-    glVertex3fv(&Pr->V[Pr->I[i]].P.X);    
+    glUseProgram(DB3_RndPrg);
+
+    mtl = Obj->Prims[i].MtlNo;
+    if (mtl != -1)
+    {
+      if (DB3_RndMaterials[mtl].TexNo != 0)
+      {
+        glBindTexture(GL_TEXTURE_2D, DB3_RndMaterials[mtl].TexNo);
+        if ((loc = glGetUniformLocation(DB3_RndPrg, "IsTexture")) != -1)
+          glUniform1i(loc, 1);
+      }
+      else
+      {
+        if ((loc = glGetUniformLocation(DB3_RndPrg, "IsTexture")) != -1)
+          glUniform1i(loc, 0);
+      }
+      if ((loc = glGetUniformLocation(DB3_RndPrg, "Ka")) != -1)
+        glUniform3fv(loc, 1, &VG4_RndMaterials[mtl].Ka.X);
+      if ((loc = glGetUniformLocation(DB3_RndPrg, "Kd")) != -1)
+        glUniform3fv(loc, 1, &VG4_RndMaterials[mtl].Kd.X);
+      if ((loc = glGetUniformLocation(DB3_RndPrg, "Ks")) != -1)
+        glUniform3fv(loc, 1, &VG4_RndMaterials[mtl].Ks.X);
+      if ((loc = glGetUniformLocation(DB3_RndPrg, "Ph")) != -1)
+        glUniform1f(loc, VG4_RndMaterials[mtl].Ph);
+      if ((loc = glGetUniformLocation(DB3_RndPrg, "Trans")) != -1)
+        glUniform1f(loc, VG4_RndMaterials[mtl].Trans);
+    }
+
+    /* Setup global variables */
+    if ((loc = glGetUniformLocation(DB3_RndPrg, "MatrWVP")) != -1)
+      glUniformMatrix4fv(loc, 1, FALSE, M.A[0]);
+    if ((loc = glGetUniformLocation(VG4_RndPrg, "MatrWorld")) != -1)
+      glUniformMatrix4fv(loc, 1, FALSE, DB3_RndMatrWorld.A[0]);
+    if ((loc = glGetUniformLocation(VG4_RndPrg, "MatrView")) != -1)
+      glUniformMatrix4fv(loc, 1, FALSE, DB3_RndMatrView.A[0]);
+    if ((loc = glGetUniformLocation(DB3_RndPrg, "MatrProj")) != -1)
+      glUniformMatrix4fv(loc, 1, FALSE, VG4_RndMatrProj.A[0]);
+    if ((loc = glGetUniformLocation(DB3_RndPrg, "Time")) != -1)
+      glUniform1f(loc, VG4_Anim.Time);
+    if ((loc = glGetUniformLocation(DB3_RndPrg, "PartNo")) != -1)
+      glUniform1i(loc, i);
+
+    /* Activete primitive vertex array */
+    glBindVertexArray(Obj->Prims[i].VA);
+    /* Activete primitive index buffer */
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, Obj->Prims[i].IBuf);
+    /* Draw primitive */
+    glDrawElements(GL_TRIANGLES, Obj->Prims[i].NumOfI, GL_UNSIGNED_INT, NULL);
+    glUseProgram(0);
+    DB3_RndMatrWorld = MSave;
   }
-  glEnd();
-} /* End of 'VG4_RndPrimDraw' function */
+} /* End of 'VG4_RndObjDraw' function */
 
-/* Primitive free function.
+/* Object free function.
  * ARGUMENTS:
- *   - primtive to free:
- *       vg4PRIM *Pr;
+ *   - object structure pointer:
+ *       db3OBJ *Obj;
  * RETURNS: None.
  */
-VOID DB3_RndPrimFree( db3PRIM *Pr )
+VOID DB3_RndObjFree( db3OBJ *Obj )
 {
-  if (Pr->V != NULL)
-    free(Pr->V);
-  if (Pr->I != NULL)
-    free(Pr->I);
-  memset(Pr, 0, sizeof(db3PRIM));
-} /* End of 'VG4_RndPrimFree' function */
+  INT i;
 
-/* Load primitive from '*.g3d' file function.
+  for (i = 0; i < Obj->NumOfPrims; i++)
+  {
+    glBindVertexArray(Obj->Prims[i].VA);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glDeleteBuffers(1, &Obj->Prims[i].VBuf);
+    glBindVertexArray(0);
+    glDeleteVertexArrays(1, &Obj->Prims[i].VA);
+    glDeleteBuffers(1, &Obj->Prims[i].IBuf);
+  }
+  free(Obj->Prims);
+  memset(Obj, 0, sizeof(vg4OBJ));
+} /* End of 'VG4_RndObjFree' function */
+
+/* Material find by name function.
  * ARGUMENTS:
- *   - primitive structure pointer:
- *       vg4PRIM *Pr;
- *   - file name:
- *       CHAR *FileName;
+ *   - material name:
+ *       CHAR *Name;
  * RETURNS:
- *   (BOOL) TRUE is success, FALSE otherwise.
+ *   (INT) number of found material or -1 if no result.
  */
-BOOL DB3_RndPrimLoad( db3PRIM *Pr, CHAR *FileName )
+INT DB3_RndFindMaterial( CHAR *Name )
 {
-  FILE *F;
+  INT i;
+
+  for (i = 0; i < DB3_RndNumOfMaterials; i++)
+    if (strcmp(Name, DB3_RndMaterials[i].Name) == 0)  /* #include <string.h> */
+      return i;
+  return -1;
+} /* End of 'DB3_RndFindMaterial' function */
+
+/* Material load function.
+ * ARGUMENTS:
+ *   - material file name:
+ *       CHAR *FileName;
+ * RETURNS: None.
+*/
+VOID VG4_RndLoadMaterials( CHAR *FileName )
+{
+  INT i, NumOfMaterials, x, y;
+  UINT t;
   DWORD Sign;
-  INT NumOfPrimitives;
-  CHAR MtlFile[300];
-  INT NumOfP;
-  INT NumOfI;
-  CHAR Mtl[300];
-  INT p;
+  FILE *F;
+  vg4MTL M;
+  BYTE *Image;
 
-  memset(Pr, 0, sizeof(db3PRIM));
-
-  F = fopen(FileName, "rb");
-  if (F == NULL)
-    return FALSE;
-
-  /* File structure:
-   *   4b Signature: "G3D\0"    CHAR Sign[4];
-   *   4b NumOfPrimitives       INT NumOfPrimitives;
-   *   300b material file name: CHAR MtlFile[300];
-   *   repeated NumOfPrimitives times:
-   *     4b INT NumOfP; - vertex count
-   *     4b INT NumOfI; - index (triangles * 3) count
-   *     300b material name: CHAR Mtl[300];
-   *     repeat NumOfP times - vertices:
-   *         !!! float point -> FLT
-   *       typedef struct
-   *       {
-   *         VEC  P;  - Vertex position
-   *         VEC2 T;  - Vertex texture coordinates
-   *         VEC  N;  - Normal at vertex
-   *         VEC4 C;  - Vertex color
-   *       } VERTEX;
-   *     repeat (NumOfF / 3) times - facets (triangles):
-   *       INT N0, N1, N2; - for every triangle (N* - vertex number)
-   */
+  if ((F = fopen(FileName, "rb")) == NULL)
+    return;
+  /* Read and check file signature */
   fread(&Sign, 4, 1, F);
-  if (Sign != *(DWORD *)"G3D")
+  if (Sign != *(DWORD *)"GMT")
   {
     fclose(F);
-    return FALSE;
+    return;
   }
-  fread(&NumOfPrimitives, 4, 1, F);
-  fread(MtlFile, 1, 300, F);
-  for (p = 0; p < NumOfPrimitives; p++)
+
+  /* Read all materials */
+  fread(&NumOfMaterials, 4, 1, F);
+  for (i = 0; i < NumOfMaterials; i++)
   {
-    /* Read primitive info */
-    fread(&NumOfP, 4, 1, F);
-    fread(&NumOfI, 4, 1, F);
-    fread(Mtl, 1, 300, F);
+    if (DB3_RndNumOfMaterials >= DB3_MAX_MATERIALS)
+      break;
 
-    /* Allocate memory for primitive */
-    if ((Pr->V = malloc(sizeof(db3VERTEX) * NumOfP)) == NULL)
+    /* Read illumination coefficients and texture parameters */
+    fread(&M, sizeof(db3MTL), 1, F);
+    
+    /* Read image */
+    if (M.TexW != 0 && M.TexH != 0 && M.TexNo != 0)
     {
-      fclose(F);
-      return FALSE;
-    }
-    if ((Pr->I = malloc(sizeof(INT) * NumOfI)) == NULL)
-    {
-      free(Pr->V);
-      Pr->V = NULL;
-      fclose(F);
-      return FALSE;
-    }
-    Pr->NumOfV = NumOfP;
-    Pr->NumOfI = NumOfI;
-    fread(Pr->V, sizeof(db3VERTEX), NumOfP, F);
-    fread(Pr->I, sizeof(INT), NumOfI, F);
-    if (Pr->NumOfV > 0)
-    {
-      INT i;
+      /* Allocate memory for texture image */
+      if ((Image = malloc(M.TexW * M.TexH * M.TexNo)) == NULL)
+      {
+        fclose(F);
+        return;
+      }
+      fread(Image, M.TexNo, M.TexW * M.TexH, F);
+      /* Flip image */
+      /*
+      for (y = 0; y < M.TexH / 2; y++)
+        for (x = 0; x < M.TexW * M.TexNo; x++)
+        {
+          INT
+            first = y * M.TexW * M.TexNo + x,
+            last = (M.TexH - 1 - y) * M.TexW * M.TexNo + x;
+          BYTE tmp = Image[first];
 
-      for (i = 0; i < Pr->NumOfV; i++)
-        Pr->V[i].C = Vec4Set(Pr->V[i].N.X / 2 + 0.5,
-                             Pr->V[i].N.Y / 2 + 0.5,
-                             Pr->V[i].N.Z / 2 + 0.5, 1); /* Vec4Set(Rnd0(), Rnd0(), Rnd0(), 1); */
+          Image[first] = Image[last];
+          Image[last] = tmp;
+        }
+      */
+      glGenTextures(1, &t);
+      glBindTexture(GL_TEXTURE_2D, t);
+      gluBuild2DMipmaps(GL_TEXTURE_2D, M.TexNo, M.TexW, M.TexH,
+        M.TexNo == 3 ? GL_BGR_EXT : GL_BGRA, GL_UNSIGNED_BYTE, Image);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glBindTexture(GL_TEXTURE_2D, 0);
+      M.TexNo = t;
     }
-    break;
+    /* Add material to animation and OpenGL */
+    DB3_RndMaterials[DB3_RndNumOfMaterials++] = M;
   }
   fclose(F);
-  return TRUE;
-} /* End of 'VG4_RndPrimLoad' function */
-/* Primitive draw function.
- * ARGUMENTS:
- *   - primtive to draw:
- *       as5PRIM *Pr;
- * RETURNS: None.
- */
-VOID DB3_RndPrimDraw( db3PRIM *Pr )
-{
-  INT loc;
-  MATR M;
+} /* End of 'DB3_RndLoadMaterials' function */
 
-  /* Build transform matrix */
-  M = MatrMulMatr(DB3_RndMatrWorld,
-    MatrMulMatr(DB3_RndMatrView, DB3_RndMatrProj));
-  glLoadMatrixf(M.A[0]);
-
-  glUseProgram(DB3_RndPrg);
-
-  /* Setup global variables */
-  if ((loc = glGetUniformLocation(DB3_RndPrg, "MatrWorld")) != -1)
-    glUniformMatrix4fv(loc, 1, FALSE, DB3_RndMatrWorld.A[0]);
-  if ((loc = glGetUniformLocation(DB3_RndPrg, "MatrView")) != -1)
-    glUniformMatrix4fv(loc, 1, FALSE, DB3_RndMatrView.A[0]);
-  if ((loc = glGetUniformLocation(DB3_RndPrg, "MatrProj")) != -1)
-    glUniformMatrix4fv(loc, 1, FALSE, DB3_RndMatrProj.A[0]);
-  if ((loc = glGetUniformLocation(DB3_RndPrg, "Time")) != -1)
-    glUniform1f(loc, DB3_Anim.Time);
-
-
-  /* Activete primitive vertex array */
-  glBindVertexArray(Pr->VA);
-  /* Activete primitive index buffer */
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, Pr->IBuf);
-  /* Draw primitive */
-  glDrawElements(GL_TRIANGLES, Pr->NumOfI, GL_UNSIGNED_INT, NULL);
-  glUseProgram(0);
-} /* End of 'AS5_RndPrimDraw' function */
-
-/* Primitive free function.
- * ARGUMENTS:
- *   - primtive to free:
- *       as5PRIM *Pr;
- * RETURNS: None.
- */
-VOID AS5_RndPrimFree( as5PRIM *Pr )
-{
-  glBindVertexArray(Pr->VA);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glDeleteBuffers(1, &Pr->VBuf);
-  glBindVertexArray(0);
-  glDeleteVertexArrays(1, &Pr->VA);
-  glDeleteBuffers(1, &Pr->IBuf);
-  memset(Pr, 0, sizeof(as5PRIM));
-} /* End of 'AS5_RndPrimFree' function */
-
-
+/* END OF 'RENDER.C' FILE */
