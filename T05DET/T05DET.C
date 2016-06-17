@@ -1,86 +1,90 @@
-/*
-Programm: T05DET
-Programmer: Borisov Denis
-Date: 16.06.2016
+/* FILE: TO5DET.C
+*Borisov Denis
+*DATA: 16.06.2016
 */
 #include <stdio.h>
+#include <conio.h>
 #define MAX 3
-int N;
-int P[MAX], Parity = 0;
-double A[MAX][MAX], sum = 0;
 
-/*start of "LoadMatrix" function*/
+int n, P[MAX];
+double A[MAX][MAX], sum;
+char Parity = 1, SaveParity;
+
 void LoadMatrix( char *FileName )
 {
   int i, j;
 
   FILE *F;
-  F = fopen("file.log", "r");
+  F = fopen(FileName, "r");
   if (F == NULL)
-    return;
-  fscanf(F, "%d", &N);
-  for (i = 0; i < N; i++)
-    for(j = 0; j < N; j++)
+  return;
+  fscanf(F, "%d", &n);
+  for (i = 0; i < n; i++)
+    for(j = 0; j < n; j++)
       fscanf(F, "%lf", &A[i][j]);
   fclose(F);
-} /*end of "LoadMatrix" functoin*/
-/*start of "Swap" function*/
+}/*End of "LoadMatrix" function */
 void Swap( int *A, int *B )
 {
   int tmp = *A;
   *A = *B;
   *B = tmp;
 }/* End of "Swap" function */
-/*start of "Go" function*/
+
 void Go( int Pos )
 {
   int i;
   double prod = 1;
 
- if (Pos == N)
+  if (Pos == n)
   {
-    for(i = 0; i < N; i++) 
+    for(i = 0; i < n; i++) 
       prod *= A[i][P[i]];
-    if (Parity == 0)
+    if (Parity)
       sum += prod;
     else
       sum -= prod;
     return;
   }
- else
- {
-   Go(Pos + 1);
-   for (i = Pos + 1; i < N; i++)
-   {
-     Swap(&P[Pos], &P[i]);
-     Parity = !Parity;
-     Go(Pos + 1);
-     Swap(&P[Pos], &P[i]);
-     Parity = !Parity;
-   }
- }
-}/* End of "Go" function */
-/* Start of "EvalDeterminant" function */
+  else
+  {
+    Go(Pos + 1);
+    for (i = Pos + 1; i < n; i++)
+    {
+      Swap(&P[Pos], &P[i]);
+      if (Pos != i)
+         Parity = !Parity;
+      Go(Pos + 1);
+      if ( Pos != i)
+        Parity = !Parity;
+      Swap(&P[Pos], &P[i]); 
+    }
+  }
+}
+
 double EvalDeterminant( char *FileName )
 {
-  int i;
+int i;
 
-  LoadMatrix("file.log");
-  sum = 0;
-  for (i = 0; i < N; i++)
-    P[i] = i;
-  Go(0);
-  return sum;
-}/* End of "EvalDeterminant" function */
-/* Start of "EvalDeterminant" function */
+LoadMatrix(FileName);
+sum = 0;
+for (i = 0; i < n; i++)
+P[i] = i;
+Go(0);
+return sum;
+}
+
 void main( void )
 {
   int i;
   char *M[] =
   {
-    "mat2.txt"
+  "mat3.txt", "mat1.txt", "mat2.txt", "mat4.txt"
   };
-
+  for (i = 0; i < n; i++)
+    P[i] = i;
   for (i = 0; i < sizeof(M) / sizeof(M[0]); i++)
     printf("Det(%d)[%s] = %f\n", i, M[i], EvalDeterminant(M[i]));
-} /* End of main function */
+  _getch(); 
+}
+}/* End of main function */
