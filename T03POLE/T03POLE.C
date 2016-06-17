@@ -154,8 +154,12 @@ case WM_TIMER:
 Rectangle(hMemDC, 0, 0, w + 1, h + 1); 
 BitBlt(hMemDC, 0, 0, bm.bmWidth, bm.bmHeight, 
 hMemDCLogo, 0, 0, SRCCOPY); 
-srand(59); 
-Draw(hMemDC, hWnd, 300, 500);
+srand(59);
+for (i = 0; i < 300; i++)
+{
+  for (j = 0; j < 150; j++)
+    Draw(hMemDC, hWnd, i * 20 + 25, j * 20 + 25);
+}
 SetBkMode(hMemDC, TRANSPARENT); 
 SetTextColor(hMemDC, RGB(255, 0, 0)); 
 TextOut(hMemDC, 30, 30, "Pole", 4); 

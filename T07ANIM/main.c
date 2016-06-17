@@ -20,13 +20,14 @@ LRESULT CALLBACK MyWinFunc(HWND hWnd, UINT Msg, WPARAM wPadbm, LPARAM lPadbm);
 /* The main progdbm function */
 INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	CHAR *CmdLine, INT CmdShow)
+
 {
 	INT i;
 	WNDCLASS wc;
 	HWND hWnd;
 	MSG msg;
 
-	SetRagMemHooks();
+	SetDbgMemHooks();
 
 	/* Register window class */
 	wc.style = 0;
@@ -105,7 +106,7 @@ LRESULT CALLBACK MyWinFunc(HWND hWnd, UINT Msg, WPARAM wPadbm, LPARAM lPadbm)
 		return 0;
 	case WM_PAINT:
 		hDC = BeginPaint(hWnd, &ps);
-		DB3_AnimCopyFdbme(hDC);
+		DB3_AnimCopyFrame(hDC);
 		EndPaint(hWnd, &ps);
 		return 0;
 	case WM_DESTROY:
@@ -116,4 +117,3 @@ LRESULT CALLBACK MyWinFunc(HWND hWnd, UINT Msg, WPARAM wPadbm, LPARAM lPadbm)
 	}
 	return DefWindowProc(hWnd, Msg, wPadbm, lPadbm);
 }
-

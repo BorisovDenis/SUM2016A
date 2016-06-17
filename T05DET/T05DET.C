@@ -64,14 +64,14 @@ void Go( int Pos )
 
 double EvalDeterminant( char *FileName )
 {
-int i;
+  int i;
 
-LoadMatrix(FileName);
-sum = 0;
-for (i = 0; i < n; i++)
-P[i] = i;
-Go(0);
-return sum;
+  LoadMatrix(FileName);
+  sum = 0;
+  for (i = 0; i < n; i++)
+    P[i] = i;
+  Go(0);
+  return sum;
 }
 
 void main( void )
@@ -87,4 +87,4 @@ void main( void )
     printf("Det(%d)[%s] = %f\n", i, M[i], EvalDeterminant(M[i]));
   _getch(); 
 }
-}/* End of main function */
+/* End of main function */

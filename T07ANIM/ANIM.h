@@ -4,34 +4,33 @@
 #define DB3_MAX_UNITS 10000
 typedef struct tagdb3UNIT db3UNIT;
 static MATR
-DB3_RndMatrWorld;
-DB3_RndMatrView;
-DB3_RndMatrProj;
+  DB3_RndMatrWorld,
+  DB3_RndMatrView,
+  DB3_RndMatrProj;
 typedef struct
 {
+  HWND hWnd;
+  HDC hDC;
+  INT W, H;
+  HBITMAP hFrame;
+  db3UNIT *Units[DB3_MAX_UNITS];
+  INT NumOfUnits;
 
-	HWND hWnd;
-	HDC hDC;
-	INT W, H;
-	HBITMAP hFrame;
-	db3UNIT *Units[DB3_MAX_UNITS];
-	INT NumOfUnits;
-
-	DBL GlobalTime, GlobalDeltaTime, Time, DeltaTime, FPS;
-	BOOL IsPause;
-	INT Mx, My, Mz, Mdx, Mdy, Mdz;
-	BYTE Keys[256], OldKeys[256], KeysClick[256];
-	BYTE JBut[32];
-	INT JPov;
-	DBL JX, JY, JZ, JR;
+  DBL GlobalTime, GlobalDeltaTime, Time, DeltaTime, FPS;
+  BOOL IsPause;
+  INT Mx, My, Mz, Mdx, Mdy, Mdz;
+  BYTE Keys[256], OldKeys[256], KeysClick[256];
+  BYTE JBut[32];
+  INT JPov;
+  DBL JX, JY, JZ, JR;
 } db3ANIM;
 
 struct tagdb3UNIT
 {
-	VOID(*Init)(db3UNIT *Uni, db3ANIM *Ani);
-	VOID(*Close)(db3UNIT *Uni, db3ANIM *Ani);
-	VOID(*Response)(db3UNIT *Uni, db3ANIM *Ani);
-	VOID(*Render)(db3UNIT *Uni, db3ANIM *Ani);
+  VOID(*Init)(db3UNIT *Uni, db3ANIM *Ani);
+  VOID(*Close)(db3UNIT *Uni, db3ANIM *Ani);
+  VOID(*Response)(db3UNIT *Uni, db3ANIM *Ani);
+  VOID(*Render)(db3UNIT *Uni, db3ANIM *Ani);
 };
 
 extern INT DB3_MouseWheel;
