@@ -1,108 +1,121 @@
 /* FILE NAME: T06SPHR.C
  * PROGRAMMER: Borisov Denis 
- * DATE: 07.06.2016
+ * DATE: 16.06.2016
  * PURPOSE: WinAPI windowed application sample.
  */
-
+/* This programm with out spaces */
+#include <stdlib.h>
+#include <math.h>
+#include "sphere.h"
+#include <windows.h>
+#define WND_CLASS_NAME "My Window Class"
 #include <stdlib.h>
 #include <math.h>
 #include "sphere.h"
 #include <windows.h>
 #define WND_CLASS_NAME "My Window Class"
 
-LRESULT CALLBACK MyWinFunc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK MyWinFunc( HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam );
 
-INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
-                   CHAR *CmdLine, INT CmdShow)
+INT WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
+CHAR *CmdLine, INT CmdShow )
 {
-  WNDCLASS wc;
-  HWND hWnd;
-  MSG msg;
-  wc.style = 0;
-  wc.cbClsExtra = 0;
-  wc.cbWndExtra = 0;
-  wc.hCursor = LoadCursor(NULL, IDC_HAND);
-  wc.hIcon = LoadIcon(NULL, IDI_EXCLAMATION);
-  wc.hbrBackground = (HBRUSH)COLOR_WINDOW;
-  wc.hInstance = hInstance;
-  wc.lpszClassName = WND_CLASS_NAME;
-  wc.lpszMenuName = NULL;
-  wc.lpfnWndProc = MyWinFunc;
-  if (!RegisterClass(&wc))
-  {
-    MessageBox(NULL, "Error register window class", "ERROR", MB_OK | MB_ICONERROR);
-    return 0;
-  }
+WNDCLASS wc;
+HWND hWnd;
+MSG msg;
 
-  hWnd = CreateWindow(WND_CLASS_NAME,
-    "30!",
-    WS_OVERLAPPEDWINDOW,
-    CW_USEDEFAULT, CW_USEDEFAULT,
-    CW_USEDEFAULT, CW_USEDEFAULT,
-    NULL, NULL, hInstance, NULL);
-    if (hWnd == NULL)
-    {
-      MessageBox(NULL, "Create window erroe", "ERROR", MB_OK | MB_ICONERROR);
-      return 0;
-    }
+wc.style = 0;
+wc.cbClsExtra = 0;
+wc.cbWndExtra = 0;
+wc.hCursor = LoadCursor(NULL, IDC_HAND);
+wc.hIcon = LoadIcon(NULL, IDI_EXCLAMATION);
+wc.hbrBackground = (HBRUSH)COLOR_WINDOW;
+wc.hInstance = hInstance;
+wc.lpszClassName = WND_CLASS_NAME;
+wc.lpszMenuName = NULL;
+wc.lpfnWndProc = MyWinFunc;
 
-    ShowWindow(hWnd, CmdShow);
-    UpdateWindow(hWnd);
-
-    while (GetMessage(&msg, NULL, 0, 0))
-      DispatchMessage(&msg);
-    return 30;
+if (!RegisterClass(&wc))
+{
+MessageBox(NULL, "Error register window class", "ERROR", MB_OK | MB_ICONERROR);
+return 0;
 }
 
-LRESULT CALLBACK MyWinFunc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+hWnd = CreateWindow(WND_CLASS_NAME,
+"30!",
+WS_OVERLAPPEDWINDOW,
+CW_USEDEFAULT, CW_USEDEFAULT,
+CW_USEDEFAULT, CW_USEDEFAULT,
+NULL, NULL, hInstance, NULL);
+if (hWnd == NULL)
 {
-  HDC hDC;
-  PAINTSTRUCT ps;
-  static INT w, h;
-  static BITMAP bm;
-  static HBITMAP hBm, hBmLogo;
-  static HDC hMemDC, hMemDCLogo;
-  switch (Msg)
-  {
-  case WM_CREATE:
-    SetTimer(hWnd, 30, 10, NULL);
-    hDC = GetDC(hWnd);
-    hMemDC = CreateCompatibleDC(hDC);
-    ReleaseDC(hWnd, hDC);
-    return 0;
-  case WM_SIZE:
-    w = LOWORD(lParam);
-    h = HIWORD(lParam);
-    if (hBm != NULL)
-      DeleteObject(hBm);
-    hDC = GetDC(hWnd);
-    hBm = CreateCompatibleBitmap(hDC, w, h);
-    ReleaseDC(hWnd, hDC);
-    SelectObject(hMemDC, hBm);
-    SendMessage(hWnd, WM_TIMER, 0, 0);
-    return 0;
-  case WM_ERASEBKGND:
-    return 0;
-  case WM_TIMER:
-    Rectangle(hMemDC, 0, 0, w + 1, h + 1);
-    srand(59);
-    SetBkMode(hMemDC, TRANSPARENT);
-    DrawSphere(hMemDC, w / 2, h / 2);
-    InvalidateRect(hWnd, NULL, FALSE);
-    return 0;
-  case WM_PAINT:
-    hDC = BeginPaint(hWnd, &ps);
-    BitBlt(hDC, 0, 0, w, h, hMemDC, 0, 0, SRCCOPY);
-    EndPaint(hWnd, &ps);
-    return 0;
-  case WM_DESTROY:
-    KillTimer(hWnd, 30);
-    DeleteDC(hMemDC);
-    DeleteObject(hBm);
-    PostQuitMessage(0);
-    return 0;
-  }
-  return DefWindowProc(hWnd, Msg, wParam, lParam);
+MessageBox(NULL, "Create window erroe", "ERROR", MB_OK | MB_ICONERROR);
+return 0;
 }
-/* END OF 'T06SPHERE.C' FILE */
+
+ShowWindow(hWnd, CmdShow);
+UpdateWindow(hWnd); 
+
+while (GetMessage(&msg, NULL, 0, 0))
+DispatchMessage(&msg);
+
+return 30;
+}
+
+LRESULT CALLBACK MyWinFunc( HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam )
+{
+HDC hDC;
+PAINTSTRUCT ps;
+static INT w, h;
+static BITMAP bm;
+static HBITMAP hBm, hBmLogo;
+static HDC hMemDC, hMemDCLogo;
+
+switch (Msg)
+{
+case WM_CREATE: 
+SetTimer(hWnd, 30, 10, NULL);
+hBmLogo = LoadImage(NULL, "GLOB.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+GetObject(hBmLogo, sizeof(bm), &bm);
+hDC = GetDC(hWnd);
+hMemDC = CreateCompatibleDC(hDC);
+hMemDCLogo = CreateCompatibleDC(hDC);
+ReleaseDC(hWnd, hDC);
+return 0;
+case WM_SIZE:
+w = LOWORD(lParam);
+h = HIWORD(lParam);
+if (hBm != NULL)
+DeleteObject(hBm);
+hDC = GetDC(hWnd);
+hBm = CreateCompatibleBitmap(hDC, w, h);
+ReleaseDC(hWnd, hDC);
+SelectObject(hMemDC, hBm);
+SendMessage(hWnd, WM_TIMER, 0, 0);
+return 0;
+case WM_ERASEBKGND:
+return;
+case WM_TIMER:
+Rectangle(hMemDC, 0, 0, w + 1, h + 1);
+BitBlt(hMemDC, 0, 0, bm.bmWidth, bm.bmHeight, hMemDCLogo, 0, 0, SRCCOPY);
+srand(59);
+DrawSphere(hMemDC, w / 2, h / 2 );
+SetBkMode(hMemDC, TRANSPARENT);
+InvalidateRect(hWnd, NULL, FALSE);
+return 0;
+case WM_PAINT:
+hDC = BeginPaint(hWnd, &ps);
+BitBlt(hDC, 0, 0, w, h, hMemDC, 0, 0, SRCCOPY);
+EndPaint(hWnd, &ps);
+return 0;
+case WM_DESTROY:
+KillTimer(hWnd, 30);
+DeleteDC(hMemDC);
+DeleteObject(hBm);
+PostQuitMessage(0);
+return 0;
+}
+return DefWindowProc(hWnd, Msg, wParam, lParam);
+}
+/* End of  "T06SPHR" file */
 
