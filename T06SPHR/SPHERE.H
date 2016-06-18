@@ -4,8 +4,9 @@
  */
 #ifndef __SPHERE_H_
 #define __SPHERE_H_
+#include <windows.h>
 
-VOID DrawSphere( HDC hDC, INT Xc, INT Yc );
-
+VOID DrawSphere( HDC hDC, INT xc, INT yc );
+VOID LoadSphere( VOID );
 #endif
 /* END OF 'HEADER.H' FILE */
