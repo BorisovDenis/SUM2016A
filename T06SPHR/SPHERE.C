@@ -7,8 +7,8 @@
 #include <stdio.h>
 #include "sphere.h"
 #include <time.h>
-#define n 400
-#define m 800
+#define n 500
+#define m 1000
 #define pi 3.141592653589
 #pragma warning(disable: 4244)
 
@@ -197,6 +197,6 @@ LineTo(hDC, x, y);
     }
   }
 
-  SetDCPenColor(hDC, RGB(255, 255, 255));
-  SetDCBrushColor(hDC, RGB(255, 255, 255));
+  SetDCPenColor(hDC, RGB(0, 0, 14));
+  SetDCBrushColor(hDC, RGB(0, 0, 14));
 }
