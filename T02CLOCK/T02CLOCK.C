@@ -1,9 +1,51 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <windows.h>   
+#include <windows.h>
 
 #define WND_CLASS_NAME "My Window Class" 
+
+VOID Arrow(HDC hDC, HWND hWnd, INT X, INT Y, INT s, INT l, DOUBLE a,  INT r,  INT g,  INT b,  INT r1,  INT g1,  INT b1) 
+{ 
+  INT i; 
+  DOUBLE si, co; 
+  POINT pt;
+  POINT p[] = 
+  { 
+    { 0, -s },{ -s, 0 },{ 0, l } 
+  }; 
+  POINT p1[] = 
+  { 
+    { 0, -s },{ s, 0 },{ 0, l } 
+  }; 
+  POINT pts[sizeof(p) / sizeof(p[0])]; 
+  POINT pts1[sizeof(p1) / sizeof(p1[0])]; 
+  si = sin(a); 
+  co = cos(a); 
+
+  for (i = 0; i < sizeof(p) / sizeof(p[0]); i++) 
+  { 
+    pts[i].x = X + p[i].x * co + p[i].y * si;
+    pts[i].y = Y - ( - p[i].x * si + p[i].y * co);
+    pts1[i].x = X + p1[i].x * co + p1[i].y * si;
+    pts1[i].y = Y - ( - p1[i].x * si + p1[i].y * co);
+  } 
+  SelectObject(hDC, GetStockObject(DC_PEN)); 
+  SelectObject(hDC, GetStockObject(DC_BRUSH)); 
+ 
+  srand(clock() / 1000); 
+  
+  SetDCPenColor(hDC, /* RGB(rand() % 256, rand() % 256, rand() % 256)*/RGB(r, g, b));
+  SetDCBrushColor(hDC, /* RGB(rand() % 256, rand() % 256, rand() % 256)*/ RGB(r, g, b)); 
+  Polygon(hDC, pts, sizeof(p) / sizeof(p[0])); 
+
+  SetDCPenColor(hDC, /* RGB(rand() % 256, rand() % 256, rand() % 256) */ RGB(r1, g1, b1));
+  SetDCBrushColor(hDC, /* RGB(rand() % 256, rand() % 256, rand() % 256) */ RGB(r1, g1, b1)); 
+  Polygon(hDC, pts1, sizeof(p1) / sizeof(p1[0])); 
+
+  SetDCPenColor(hDC, RGB(255, 255, 255)); 
+  SetDCBrushColor(hDC, RGB(255, 255, 255)); 
+} /* End of 'Draw' function */ 
 
 /* Forward references */
 LRESULT CALLBACK MyWinFunc( HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam );
@@ -69,7 +111,7 @@ LRESULT CALLBACK MyWinFunc( HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam )
   static BITMAP bm;
   static HBITMAP hBm, hBmLogo;
   static HDC hMemDC, hMemDCLogo;
-  p = 3.141592653589;
+  p = 3.14159265358979323846;
   GetLocalTime(&t);
  
 
@@ -96,7 +138,7 @@ LRESULT CALLBACK MyWinFunc( HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam )
       SelectObject(hMemDC, hBm);
       SendMessage(hWnd, WM_TIMER, 0, 0);
     case WM_ERASEBKGND: 
-      return 0;                  
+      return 0;
     case WM_TIMER:
       Rectangle(hMemDC, 0, 0, w + 1, h + 1);
       BitBlt(hMemDC, (w - bm.bmWidth) / 2, (h - bm.bmHeight) / 2, bm.bmWidth, bm.bmHeight ,hMemDCLogo, 0, 0, SRCCOPY);
@@ -104,18 +146,21 @@ LRESULT CALLBACK MyWinFunc( HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam )
       SetBkMode(hMemDC, TRANSPARENT);
       SetTextColor(hMemDC, RGB(255, 0, 0));
       a = (t.wSecond + t.wMilliseconds / 1000.0) * 2 * p / 60;
-      r = bm.bmWidth / 2.2;
-      MoveToEx(hMemDC, w / 2, h / 2, NULL);
-      LineTo(hMemDC, w / 2 + sin(a) * r, h / 2 - cos(a) * r);
+      //r = bm.bmWidth / 3;
+      //MoveToEx(hMemDC, w / 2, h / 2, NULL);
+      //LineTo(hMemDC, w / 2 + sin(a) * r, h / 2 - cos(a) * r);
+      Arrow(hMemDC, hWnd,  w / 2, h / 2, 3, 220, a, 170, 0, 0, 130, 0, 0); 
       a  = (t.wMinute + t.wSecond / 60.0) * 2 * p /60;
-      r = bm.bmWidth / 3;
-      MoveToEx(hMemDC, w / 2, h / 2, NULL);
-      LineTo(hMemDC, w / 2 + sin(a) * r, h / 2 - cos(a) * r);
+      //r = bm.bmWidth / 5;
+      Arrow(hMemDC, hWnd,  w / 2, h / 2, 5, 170, a, 0, 0, 0, 20, 20, 20); 
+      //MoveToEx(hMemDC, w / 2, h / 2, NULL);
+      //LineTo(hMemDC, w / 2 + sin(a) * r, h / 2 - cos(a) * r);
       a  = (t.wHour + t.wMinute / 60.0) / 12 * p / 60 * 2;
-      r  = bm.bmWidth / 4.2;
-      MoveToEx(hMemDC, w / 2, h / 2, NULL);
-      LineTo(hMemDC, w / 2 + sin(a) * r, h / 2 - cos(a) * r);
-      TextOut(hMemDCLogo, 30,  30, s, sprintf(s, "%02i.%02i.%i", t.wDay, t.wMonth, t.wYear));
+      //r  = bm.bmWidth / 4;
+      Arrow(hMemDC, hWnd,  w / 2, h / 2, 8, 120, a, 0, 0, 150, 0, 0, 130); 
+      //MoveToEx(hMemDC, w / 2, h / 2, NULL);
+      //LineTo(hMemDC, w / 2 + sin(a) * r, h / 2 - cos(a) * r);
+      TextOut(hMemDCLogo, 60,  60, s, sprintf(s, "%02i.%02i.%i", t.wDay, t.wMonth, t.wYear));
       InvalidateRect(hWnd, NULL, FALSE);
       return 0;
     case WM_PAINT:
